@@ -8,8 +8,8 @@ import torch.backends.cudnn as cudnn
 import torchvision.utils as vutils
 from tqdm import tqdm
 
-from model_trans import VisionTransformer
 from model_cae import CAE
+from model_cbam import UC
 from models import VanillaAE
 from utils import get_dataloader, print_and_write_log, set_random_seed
 
@@ -78,17 +78,14 @@ def main():
     opt.nc = nc
 
     print_and_write_log(train_log_file, opt)
-    print("model preparing")
 
-    model = VisionTransformer(opt)
-    print("model ready")
+    model = UC(opt)
 
     num_epochs = opt.nepoch
     iters = 0
 
     matrix = None
     best = None
-    frame = 4
     for epoch in tqdm(range(1, num_epochs + 1)):
         for i, data in enumerate(tqdm(dataloader), 0):
             if opt.dataset == 'pairfilelist':
@@ -114,16 +111,15 @@ def main():
             # write images for visualization
             if (iters % opt.visualize_iter == 0) or ((epoch == num_epochs) and (i == len(dataloader) - 1)):
                 real_cpu = data.cpu()
-                if frame == 0:
-                    recon = model.sample(real_cpu)
-                else:
-                    recon = model.sample(real_cpu[:, :frame])
-
-
-                visual = torch.cat([real_cpu[:, frame], recon.detach().cpu()[:16]], 0)
+                recon = model.sample(real_cpu)
+                visual = torch.cat([real_cpu[:16], recon.detach().cpu()[:16]], 0)
                 vutils.save_image(visual, '%s/images/epoch_%03d_real_recon.png' % (opt.expf, epoch), normalize=True,
                                   nrow=16)
-
+            real_cpu = data.cpu()
+            recon = model.sample(real_cpu)
+            visual = torch.cat([real_cpu[:16], recon.detach().cpu()[:16]], 0)
+            vutils.save_image(visual, '%s/images/epoch_%03d_real_recon.png' % (opt.expf, iters), normalize=True,
+                              nrow=16)
             iters += 1
 
         # save checkpoints

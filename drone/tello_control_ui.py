@@ -13,7 +13,7 @@ import platform
 class TelloUI:
     """Wrapper class to enable the GUI."""
 
-    def __init__(self, tello, outputpath):
+    def __init__(self,file_name, tello, outputpath):
         """
         Initial all the element of the GUI,support by Tkinter
 
@@ -22,7 +22,7 @@ class TelloUI:
         Raises:
             RuntimeError: If the Tello rejects the attempt to enter command mode.
         """
-
+        self.file_name = file_name
         self.tello = tello  # videostream device
         self.outputPath = outputpath  # the path that save pictures created by clicking the takeSnapshot button
         self.frame = None  # frame read from h264decoder and used for pose recognition
@@ -67,6 +67,35 @@ class TelloUI:
 
         # the sending_command will send command to tello every 5 seconds
         self.sending_command_thread = threading.Thread(target=self._sendingCommand)
+
+
+
+    def send_cmd_from_text(self):
+        f = open(self.file_name, "r")
+        commands = f.readlines()
+        self.tello.takeoff()
+        time.sleep(5)
+        self.tello.move_right(0.3)
+        time.sleep(5)
+        self.tello.rotate_ccw(self.degree)
+        time.sleep(5)
+        self.tello.move_forward(1)
+        time.sleep(10)
+        self.tello.move_left(0.3)
+        time.sleep(10)
+        self.tello.land()
+        # for command in commands:
+        #     if command != '' and command != '\n':
+        #         command = command.rstrip()
+        #
+        #         if command.find('delay') != -1:
+        #             sec = float(command.partition('delay')[2])
+        #             print('delay %s' % sec)
+        #             time.sleep(sec)
+        #             pass
+        #         else:
+        #             self.tello.send_command(command)
+        #             print(command)
 
     def videoLoop(self):
         """
@@ -201,6 +230,9 @@ class TelloUI:
         self.btn_distance = tki.Button(panel, text="Reset Degree", relief="raised", command=self.updateDegreebar)
         self.btn_distance.pack(side="right", fill="both",
                                expand="yes", padx=10, pady=5)
+
+
+
 
     def openFlipWindow(self):
         """

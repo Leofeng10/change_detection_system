@@ -11,6 +11,9 @@ import torch.backends.cudnn as cudnn
 from PIL import Image
 from tqdm import tqdm
 
+from network_trans import Trans
+
+from model_trans import VisionTransformer
 from networks import MLP
 from utils import get_dataloader, print_and_write_log, set_random_seed
 import matplotlib.pyplot as pp
@@ -67,7 +70,7 @@ def tensor2im(input_image, imtype=np.uint8):
 
 def main():
 
-    assert opt.dataset in ['folderall', 'filelist'], 'Dataset option should be `folderall` or `filelist` in test mode'
+    assert opt.dataset in ['folderall', 'filelist', 'ANDT'], 'Dataset option should be `folderall` or `filelist` in test mode'
     assert opt.batchSize == 1, 'Batch size should be 1 in test mode for the moment'
 
     if opt.netG == '':
@@ -101,13 +104,9 @@ def main():
     imageSize = int(opt.imageSize)
     nz = int(opt.nz)
     nblk = int(opt.nblk)
-    model_netG = MLP(input_dim=nc * imageSize * imageSize,
-                     output_dim=nc * imageSize * imageSize,
-                     dim=nz,
-                     n_blk=nblk,
-                     norm='none',
-                     activ='relu').to(device)
-    model_netG.load_state_dict(torch.load('C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/experiments/celeba/checkpoints/netG_epoch_040.pth', map_location=device))
+    model_netG = Trans().to(device)
+
+    model_netG.load_state_dict(torch.load('C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/experiments/celeba/checkpoints/netG_epoch_005.pth', map_location=device))
     print_and_write_log(test_log_file, 'netG:')
     print_and_write_log(test_log_file, str(model_netG))
 
@@ -115,19 +114,25 @@ def main():
         model_netG.eval()
     losses = []
     scores = []
+    frame = 4
     for i, data in enumerate(tqdm(dataloader), 0):
         img, img_path = data
-        img_name = os.path.splitext(os.path.basename(img_path[0]))[0] + '.png'
+        img_name = os.path.splitext(os.path.basename(img_path[0]))[0] + '.jpg'
+        print(img.shape)
         if i >= opt.num_test:
             break
         real = img.to(device)
         with torch.no_grad():
-            recon = model_netG(real)
+            recon = model_netG(real[:, :frame])
+
         recon_img = tensor2im(recon)
 
-
         if opt.show_input:
-            real_img = tensor2im(real)
+            if frame == 1:
+                real_img = tensor2im(real[:, 0])
+            else:
+                real_img = tensor2im(real[:, frame])
+
             real_recon_img = np.concatenate([real_img, recon_img], 1)
             real_recon_img_pil = Image.fromarray(real_recon_img)
             real_recon_img_pil.save(os.path.join(opt.resfwi, img_name))

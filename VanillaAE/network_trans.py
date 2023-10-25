@@ -206,15 +206,36 @@ class Decoder(nn.Module):
                 torch.nn.ReLU(inplace=False)
             )
 
+        # self.decoder = nn.Sequential(
+        #     Basic(1024, 512),
+        #     Upsample(512, 512),
+        #     Basic(512, 256),
+        #     Upsample(256, 256),
+        #     Basic(256, 128),
+        #     Upsample(128, 128),
+        #     Basic(128, 64),
+        #     Upsample(64, 64),
+        #     Upsample2(64, 64),
+        #     Gen(64, 3, 32),
+        # )
+
         self.decoder = nn.Sequential(
-            Basic(512, 256),
-            Upsample(256, 256),
-            Basic(256, 128),
-            Upsample(128, 128),
-            Basic(128, 64),
-            Upsample(64, 64),
-            Upsample2(64, 64),
-            Gen(64, 3, 32),
+            # nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=3, stride=2, padding=1, output_padding=1),
+            # nn.ReLU(inplace=True),
+            # nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.Tanh(),
         )
 
         print("decoder ready")
@@ -242,7 +263,7 @@ class Trans(nn.Module):
                  dropout_rate=0.1,
                  num_frames=4,):
         super(Trans, self).__init__()
-
+        self.batch_size = 4
 
         h, w = image_size
 
@@ -266,16 +287,15 @@ class Trans(nn.Module):
         self.frame = num_frames
 
         self.de_dense = torch.nn.Sequential(
-            torch.nn.Linear(256 * self.frame * 8 * 8 * 3, 256),
-            torch.nn.Linear(256, 256),
-            torch.nn.Linear(256, 512 * 8 * 8),
+            torch.nn.Linear(256 * self.frame * 8 * 8 * 3, 512),
+            torch.nn.Linear(512, 512),
+            torch.nn.Linear(512, 256 * 16 * 16),
         )
 
 
 
 
     def forward(self, x):
-
         all_emb = None
         x = x.float().cuda()
         for i in range(self.frame):
@@ -287,17 +307,16 @@ class Trans(nn.Module):
                 all_emb = emb
             else:
                 all_emb = torch.cat((emb, all_emb), 1)  # (b, h*w*n, c)
-
         feat = self.encoder(all_emb)
-        feat = feat.view(4, 256 * self.frame, 16, 16, 3)
-        feat = F.avg_pool2d(feat.permute(0, 1, 4, 2, 3).reshape(4 * self.frame * 256, 3, 16, 16), kernel_size=2, stride=2)
+        feat = feat.view(self.batch_size, 256 * self.frame, 16, 16, 3)
+        feat = F.avg_pool2d(feat.permute(0, 1, 4, 2, 3).reshape(self.batch_size * self.frame * 256, 3, 16, 16), kernel_size=2, stride=2)
 
         # feat = feat.view(4, 1024, 4, 4, 3)
-        feat = feat.reshape(4, 256 * self.frame, 3, 8, 8).permute(0, 1, 3, 4, 2)
-        feat = feat.view(4, 256 * self.frame * 8 * 8 * 3)
+        feat = feat.reshape(self.batch_size, 256 * self.frame, 3, 8, 8).permute(0, 1, 3, 4, 2)
+        feat = feat.view(self.batch_size, 256 * self.frame * 8 * 8 * 3)
 
         feat = self.de_dense(feat)
-        feat = feat.view(4, 512, 8, 8)
+        feat = feat.view(self.batch_size, 256, 16, 16)
 
         output = self.decoder(feat)
 

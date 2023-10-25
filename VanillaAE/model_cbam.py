@@ -4,22 +4,22 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from network_trans import Trans
 from network_cae import Autoencoder
 from focal_frequency_loss import FocalFrequencyLoss as FFL
 
 from networks import MLP
 from utils import print_and_write_log, weights_init
 
-
-class VisionTransformer(nn.Module):
+from CBAM.unet_CBAM import Unet_CBAM
+class UC(nn.Module):
     def __init__(self, opt):
-        super(VisionTransformer, self).__init__()
+        super(UC, self).__init__()
         self.opt = opt
         self.device = torch.device("cuda:0" if not opt.no_cuda else "cpu")
-        self.frame = 4
+
+
         # generator
-        self.netG = Trans(num_frames=self.frame).to(self.device)
+        self.netG = Unet_CBAM(3, 3).to(self.device)
         weights_init(self.netG)
         if opt.netG != '':
             self.netG.load_state_dict(torch.load(opt.netG, map_location=self.device))
@@ -46,36 +46,23 @@ class VisionTransformer(nn.Module):
         pass
 
     def gen_update(self, data, epoch, matrix=None):
-
         self.netG.zero_grad()
         real = data.to(self.device)
         if matrix is not None:
             matrix = matrix.to(self.device)
-        if self.frame == 0:
-            recon = self.netG(real)
-        else:
-            recon = self.netG(real[:,:self.frame])
+        recon = self.netG(real)
 
-
-        # print("real size-----------", real.size())
-        #
-        # print("recon size-----------", recon.size())
 
         # apply pixel-level loss
-        errG_pix = self.criterion(recon, real[:, self.frame]) * self.opt.mse_w
-        errG_pix = errG_pix.float().cuda()
+        errG_pix = self.criterion(recon, real) * self.opt.mse_w
+
         # apply focal frequency loss
         if epoch >= self.opt.freq_start_epoch:
-            errG_freq = self.criterion_freq(recon, real[:, self.frame], matrix)
+            errG_freq = self.criterion_freq(recon, real, matrix)
         else:
             errG_freq = torch.tensor(0.0).to(self.device)
 
-        errG_pix = errG_freq.float().cuda()
-
         errG = errG_pix + errG_freq
-
-        errG = errG.float().cuda()
-
         errG.backward()
         self.optimizerG.step()
 

@@ -67,10 +67,10 @@ class ImageFilelistANDT(data.Dataset):
         self.loader = loader
 
     def __getitem__(self, index):
-        nf = 4
-        batch_frames = np.zeros((nf + 1, 3, 256, 256))
+        frame = 4
+        batch_frames = np.zeros((frame + 1, 3, 256, 256))
         impath = self.imlist[index]
-        for i in range(nf + 1):
+        for i in range(frame + 1):
             image = self.loader(os.path.join(self.root, impath))
             if self.transform is not None:
                 batch_frames[i] = self.transform(image)

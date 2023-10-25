@@ -48,13 +48,13 @@ class Tello:
 
         # to receive video -- send cmd: command, streamon
         self.socket.sendto(b'command', self.tello_address)
-        print('sent: command')
+        # print('sent: command')
         self.socket.sendto(b'streamon', self.tello_address)
-        print('sent: streamon')
+        # print('sent: streamon')
 
         # self.socket_video.bind((local_ip, self.local_video_port))
         # print(self.socket_video.getsockname(), self.socket_video.getpeername())
-        print(self.socket.getsockname())
+        # print(self.socket.getsockname())
         # print(self.socket_video.getsockname())
 
         self.camera = cv2.VideoCapture("udp://0.0.0.0:11111")
@@ -65,7 +65,6 @@ class Tello:
 
         self.receive_video_thread.start()
         self.local_ip = local_ip
-        print(local_ip)
 
     def __del__(self):
         """Closes the local socket."""
@@ -106,41 +105,17 @@ class Tello:
         Runs as a thread, sets self.frame to the most recent frame Tello captured.
 
         """
-        # packet_data = ""
-        # file = 1
-        # while True:
-        #     try:
-        #
-        #         res_string, ip = self.socket_video.recvfrom(2048)
-        #         packet_data += res_string
-        #         # print(len(res_string))
-        #         # end of frame
-        #         if len(res_string) != 1460:
-        #             # print(len(res_string))
-        #             # print ("==========finish==============")
-        #             # name = "./img/video_" + str(file) + ".h264"
-        #             # with open(name, 'wb') as h264_file:
-        #             #     h264_file.write(packet_data)
-        #             # file += 1
-        #
-        #             # for frame in self._h264_decode(packet_data):
-        #             #     self.frame = frame
-        #             self.frame = packet_data
-        #             packet_data = ""
-        #
-        #     except socket.error as exc:
-        #         print ("Caught exception socket.error : %s" % exc)
+
 
         # use opencv to capture receive the video from the port udp://0.0.0.0:11111
         num_frame = 1
         while True:
-            print("receive")
 
             ret, frame = self.camera.read()
             if ret:
                 resize = cv2.resize(frame, (256, 256))
                 cv2.imshow("tello", resize)
-                path = "./img/frame_" + str(file) + ".jpg"
+                path = "C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/drone/removal/frame_" + str(num_frame) + ".jpg"
                 cv2.imwrite(path, resize)
                 num_frame += 1
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -157,16 +132,7 @@ class Tello:
         :return: a list of decoded frame
         """
         res_frame_list = []
-        # frames = self.decoder.decode(packet_data)
-        # for framedata in frames:
-        #     (frame, w, h, ls) = framedata
-        #     if frame is not None:
-        #         # print 'frame size %i bytes, w %i, h %i, linesize %i' % (len(frame), w, h, ls)
-        #
-        #         frame = np.fromstring(frame, dtype=np.ubyte, count=len(frame), sep='')
-        #         frame = (frame.reshape((h, ls / 3, 3)))
-        #         frame = frame[:, :w, :]
-        #         res_frame_list.append(frame)
+
 
         return res_frame_list
 
@@ -196,7 +162,6 @@ class Tello:
         else:
             response = self.response.decode('utf-8')
 
-        print(self.local_ip)
 
         self.response = None
 

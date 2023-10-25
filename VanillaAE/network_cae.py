@@ -61,14 +61,8 @@ class Autoencoder(nn.Module):
 
 
     def forward(self, x):
-        sz = x.shape
         out = self.encoder(x)
-        # sz = out.shape
-        # # print(out.view(out.size(0), -1).size())
-        # out = self.fc(out.view(out.size(0), -1))
-        # out = self.decoder(out.view(sz))
         out = self.decoder(out)
-        # print(out.size())
         return out
 
 

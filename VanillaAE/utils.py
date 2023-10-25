@@ -52,6 +52,7 @@ def get_dataloader(opt):
                                     return_paths=not opt.is_train)
         nc = 3
     elif opt.dataset == 'ANDT':
+        print("use andt")
         dataset = ImageFilelistANDT(root=opt.dataroot,
                                     flist=opt.datalist,
                                     transform=transforms.Compose([

@@ -11,6 +11,8 @@ import torch.backends.cudnn as cudnn
 from PIL import Image
 from tqdm import tqdm
 
+from network_cae import Autoencoder
+from model_cae import CAE
 from networks import MLP
 from utils import get_dataloader, print_and_write_log, set_random_seed
 import matplotlib.pyplot as pp
@@ -18,6 +20,23 @@ from skimage.metrics import structural_similarity
 from sklearn.metrics import mean_squared_error
 
 parser = argparse.ArgumentParser()
+
+def update(frame):
+    x.append(len(x))
+    y.append(frame)
+    line.set_data(x, y)
+    ax.relim()
+    ax.autoscale_view()
+    plt.pause(0.001)
+
+
+x = []
+y = []
+fig, ax = pp.subplots()
+ax.set_ylim(0, 130)
+ax.set_xlim(0, 600)
+line, = ax.plot(x, y)
+
 # basic
 parser.add_argument('--dataset', required=True, help='folderall | filelist')
 parser.add_argument('--dataroot', default='', help='path to dataset')
@@ -101,13 +120,13 @@ def main():
     imageSize = int(opt.imageSize)
     nz = int(opt.nz)
     nblk = int(opt.nblk)
-    model_netG = MLP(input_dim=nc * imageSize * imageSize,
-                     output_dim=nc * imageSize * imageSize,
-                     dim=nz,
-                     n_blk=nblk,
-                     norm='none',
-                     activ='relu').to(device)
-    model_netG.load_state_dict(torch.load('C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/experiments/celeba/checkpoints/netG_epoch_040.pth', map_location=device))
+    model_netG = Autoencoder(input_dim=nc * imageSize * imageSize,
+                        output_dim=nc * imageSize * imageSize,
+                        dim=nz,
+                        n_blk=nblk,
+                        norm='none',
+                        activ='relu').to(device)
+    model_netG.load_state_dict(torch.load('C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/experiments/exp4/netG_epoch_040.pth', map_location=device))
     print_and_write_log(test_log_file, 'netG:')
     print_and_write_log(test_log_file, str(model_netG))
 
@@ -126,28 +145,32 @@ def main():
         recon_img = tensor2im(recon)
 
 
-        if opt.show_input:
-            real_img = tensor2im(real)
-            real_recon_img = np.concatenate([real_img, recon_img], 1)
-            real_recon_img_pil = Image.fromarray(real_recon_img)
-            real_recon_img_pil.save(os.path.join(opt.resfwi, img_name))
-            grey_real = cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY)
-            grey_recon = cv2.cvtColor(recon_img, cv2.COLOR_BGR2GRAY)
 
-            score, diff = structural_similarity(grey_real, grey_recon, full=True)
-            loss = mean_squared_error(grey_real, grey_recon)
-            scores.append(score)
-            losses.append(loss)
+        real_img = tensor2im(real)
+        real_recon_img = np.concatenate([real_img, recon_img], 1)
+        real_recon_img_pil = Image.fromarray(real_recon_img)
+        real_recon_img_pil.save(os.path.join(opt.resfwi, img_name))
+        grey_real = cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY)
+        grey_recon = cv2.cvtColor(recon_img, cv2.COLOR_BGR2GRAY)
+
+        score, diff = structural_similarity(grey_real, grey_recon, full=True)
+        loss = mean_squared_error(grey_real, grey_recon)
+        scores.append(score)
+        losses.append(loss)
         recon_img_pil = Image.fromarray(recon_img)
         recon_img_pil.save(os.path.join(opt.resf, img_name))
+        update(loss)
 
-    plt.subplot(1, 2, 1)
-    pp.plot(losses, color='red')
-    plt.subplot(1, 2, 2)
-    pp.plot(scores, color='blue')
-    pp.tight_layout()
-    pp.show()
-    print_and_write_log(test_log_file, 'Finish testing.')
+    # plt.subplot(1, 2, 1)
+    # pp.plot(losses, color='red')
+    # plt.subplot(1, 2, 2)
+    # pp.plot(scores, color='blue')
+    # pp.tight_layout()
+    # pp.show()
+    # print_and_write_log(test_log_file, 'Finish testing.')
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Loss")
+    plt.show()
 
 
 
