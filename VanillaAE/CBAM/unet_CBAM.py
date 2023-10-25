@@ -131,11 +131,11 @@ class DoubleConv_CBAM(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        # self.cbam = CBAM(out_ch,3)
+        self.cbam = CBAM(out_ch,3)
 
     def forward(self, input):
         output = self.conv(input)
-        # output = self.cbam(output)
+        output = self.cbam(output)
         return output
 
 class Unet_CBAM(nn.Module):
