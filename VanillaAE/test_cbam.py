@@ -113,9 +113,12 @@ def main():
         real_cpu = img.cpu()
         recon = model.sample(real_cpu)
         visual = torch.cat([real_cpu[:16], recon.detach().cpu()[:16]], 0)
-        vutils.save_image(visual, 'C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i, normalize=True,
+        # vutils.save_image(visual, 'C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i, normalize=True,
+        #                   nrow=16)
+        vutils.save_image(visual,
+                          'C:/Users/Feng Zhunyi/Desktop/change_detection/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i,
+                          normalize=True,
                           nrow=16)
-
 
         recon_img = tensor2im(recon)
 
