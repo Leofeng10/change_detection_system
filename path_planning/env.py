@@ -141,10 +141,10 @@ class Env(object):
         reward=0.0
         done=False
         #self.map[self.uavs[i].x,self.uavs[i].y,self.uavs[i].z]=0
-        reward,done,info=self.uavs[i].update(action)  #无人机执行行为,info为是否到达目标点
+        reward,done,info, dx, dy, dz, x, y, z=self.uavs[i].update(action)
         #self.map[self.uavs[i].x,self.uavs[i].y,self.uavs[i].z]=1
         next_state = self.uavs[i].state()
-        return next_state,reward,done,info
+        return next_state,reward,done,info, dx, dy, dz, x, y, z
     def reset(self):
         self.uavs=[]
         self.bds=[]
@@ -241,6 +241,27 @@ class Env(object):
         self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
+
+    def convert_to_cmd(self, dx, dy, dz):
+        cmd = ""
+        if dx == 1:
+            cmd += "forward 1\n"
+        elif dx == -1:
+            cmd += "back 1\n"
+
+        if dy == 1:
+            cmd += "ccw 90\n"
+            cmd += "forward 1\n"
+        elif dy == -1:
+            cmd += "cw 90\n"
+            cmd += "forward 1\n"
+
+        if dz == 1:
+            cmd += "up 1\n"
+        elif dz == -1:
+            cmd += "down 1\n"
+
+        return cmd
 
 if __name__ == "__main__":
     env=Env()

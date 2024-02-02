@@ -4,8 +4,10 @@ import threading
 
 
 import cv2
-
-
+from skimage.metrics import structural_similarity
+from sklearn.metrics import mean_squared_error
+from path_planning.env import *
+import torch
 
 
 class Tello:
@@ -39,6 +41,10 @@ class Tello:
         self.local_video_port = 11111  # port for receiving video stream
         self.last_height = 0
         self.socket.bind((local_ip, local_port))
+        self.pos = [0, 0, 0]
+        self.model = None
+        self.env = None
+        self.file_name = "path_planning/command.txt"
 
         # thread for receiving cmd ack
         self.receive_thread = threading.Thread(target=self._receive_thread)
@@ -60,17 +66,60 @@ class Tello:
         self.camera = cv2.VideoCapture("udp://0.0.0.0:11111")
 
         # thread for receiving video
-        self.receive_video_thread = threading.Thread(target=self._receive_video_thread)
-        self.receive_video_thread.daemon = True
-
-        self.receive_video_thread.start()
+        # self.receive_video_thread = threading.Thread(target=self._receive_video_thread)
+        # self.receive_video_thread.daemon = True
+        #
+        # self.receive_video_thread.start()
         self.local_ip = local_ip
+        self.begin()
+
+
+    def begin(self):
+        while True:
+            success = self.execute()
+            if not success:
+                self.re_plan()
+            else:
+                break
+
 
     def __del__(self):
         """Closes the local socket."""
 
         self.socket.close()
         self.socket_video.close()
+
+    def setup(self, my_model, my_env):
+        self.model = my_model
+        self.env = my_env
+
+
+    def execute(self):
+        f = open(self.file_name, "r")
+        commands = f.readlines()
+        for command in commands:
+            if command[0] == "(":
+                values = command.strip("()").split(',')
+                self.pos = [int(v) for v in values]
+                ret, frame = self.camera.read()
+                if ret:
+                    resize = cv2.resize(frame, (256, 256))
+                    loss = self.detect(resize)
+                    if loss > 120:
+                        return False
+            if command != '' and command != '\n':
+
+                command = command.rstrip()
+
+                if command.find('delay') != -1:
+                    sec = float(command.partition('delay')[2])
+                    print('delay %s' % sec)
+                    time.sleep(sec)
+                    pass
+                else:
+                    self.send_command(command)
+                    print(command)
+        return True
 
     def read(self):
         """Return the last frame from camera."""
@@ -110,18 +159,35 @@ class Tello:
         # use opencv to capture receive the video from the port udp://0.0.0.0:11111
         num_frame = 1
         while True:
-
             ret, frame = self.camera.read()
             if ret:
                 resize = cv2.resize(frame, (256, 256))
-                cv2.imshow("tello", resize)
-                path = "C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/drone/removal/frame_" + str(num_frame) + ".jpg"
-                cv2.imwrite(path, resize)
+                self._receive_video_thread_detect(resize)
+                # cv2.imshow("tello", resize)
+                # path = "C:/Users/Feng Zhunyi/Desktop/change_detection/drone/removal/frame_" + str(num_frame) + ".jpg"
+                # cv2.imwrite(path, resize)
                 num_frame += 1
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         self.camera.release()
         cv2.destroyAllWindows()
+
+
+
+    def detect(self, img):
+        real_cpu = img.cpu()
+        recon = self.model.sample(real_cpu)
+        recon_img = self.tensor2im(recon)
+        real_img = self.tensor2im(real_cpu)
+        grey_real = cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY)
+        grey_recon = cv2.cvtColor(recon_img, cv2.COLOR_BGR2GRAY)
+
+        # score, diff = structural_similarity(grey_real, grey_recon, full=True)
+        loss = mean_squared_error(grey_real, grey_recon)
+        scaled_loss = np.exp(loss / 20)
+        return scaled_loss
+
+
 
     def _h264_decode(self, packet_data):
         """
@@ -463,3 +529,45 @@ class Tello:
         """
 
         return self.move('up', distance)
+
+    def re_plan(self):
+        state = self.env.reset_test1(self.pos[0], self.pos[1] + 1, self.pos[2], self.pos[0], self.pos[1], self.pos[2])
+        total_reward = 0
+        n_test = 1
+        cmd = "command\n"
+        for i in range(n_test):
+            while (1):
+                if self.env.uavs[0].done:
+                    break
+                action = self.env.get_action(FloatTensor(np.array([state[0]])), 0.01)
+
+                next_state, reward, uav_done, info, dx, dy, dz, x, y, z = self.env.step(action.item(), 0)
+
+                print(dx, dy, dz, x, y, z, uav_done)
+                cmd += self.env.convert_to_cmd(dx, dy, dz)
+                cmd += "(" + str(x) + " " + str(y) + " " + str(z) + ")\n"
+
+                total_reward += reward
+                if uav_done:
+                    break
+
+                state[0] = next_state
+
+            with open("drone/command.txt", 'w') as file:
+                file.write(cmd)
+
+    def tensor2im(self, input_image, imtype=np.uint8):
+        if not isinstance(input_image, np.ndarray):
+            if isinstance(input_image, torch.Tensor):
+                image_tensor = input_image.detach()
+            else:
+                return input_image
+            image_numpy = image_tensor[0].cpu().float().numpy()
+            if image_numpy.shape[0] == 1:
+                # grayscale to RGB
+                image_numpy = np.tile(image_numpy, (3, 1, 1))
+            # post-processing: transpose and scaling
+            image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + 1) / 2.0 * 255.0
+        else:
+            image_numpy = input_image
+        return image_numpy.astype(imtype)

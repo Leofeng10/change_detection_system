@@ -71,7 +71,7 @@ class UAV():
         dz=self.cal(temp)
         #if drone doesn't move, max penalty
         if dx==0 and dy==0 and dz==0:
-            return -1000,False,False
+            return -1000,False,False, 0, 0, 0, self.x, self.y, self.z
         self.x=self.x+dx
         self.y=self.y+dy
         self.z=self.z+dz
@@ -116,10 +116,11 @@ class UAV():
         r=r_climb+r_target-crash*self.p_crash
 
         if self.x<=0 or self.x>=self.ev.len-1 or self.y<=0 or self.y>=self.ev.width-1 or self.z<=0 or self.z>=self.ev.h-1 or self.ev.map[self.x,self.y,self.z]==1 or random.random()<self.p_crash:
-            return r-200,True,2
+            return r-200,True,2, dx, dy, dz, self.x, self.y, self.z
         if self.distance<=2:
-            return r+200,True,1
+            return r+200,True,1, dx, dy, dz, self.x, self.y, self.z
         if self.step>=self.d_origin+2*self.ev.h:
-            return r-20,True,5
+            return r-20,True,5, dx, dy, dz, self.x, self.y, self.z
 
-        return r,False,4
+        return r,False,4, dx, dy, dz, self.x, self.y, self.z
+

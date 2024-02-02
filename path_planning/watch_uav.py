@@ -35,9 +35,9 @@ if __name__ == '__main__':
     env.optim.load_state_dict(check_point_Qlocal['optimizer'])
     epoch=check_point_Qlocal['epoch']
     env.level= 8
-    state = env.reset_test()
+    # state = env.reset_test()
 
-    # state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
+    state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
     total_reward = 0
     env.render(1)
     n_done=0
@@ -45,18 +45,23 @@ if __name__ == '__main__':
  
     n_test=1
     n_creash=0
+
+    cmd = "command\n"
     for i in range(n_test):
         while(1):
             if env.uavs[0].done:
-                #无人机已结束任务，跳过
                 break
             action = env.get_action(FloatTensor(np.array([state[0]])) , 0.01)
 
-            next_state, reward, uav_done, info= env.step(action.item(),0)
+            next_state, reward, uav_done, info, dx, dy, dz, x, y, z = env.step(action.item(),0)
+
+
+            print(dx, dy, dz, x, y, z, uav_done)
+            cmd += env.convert_to_cmd(dx, dy, dz)
+            cmd += "(" + str(x) + "," +  str(y) + "," + str(z) + ")\n"
 
             total_reward += reward
 
-            print(action)
             env.render()
             plt.pause(0.01)  
             if uav_done:
@@ -65,9 +70,13 @@ if __name__ == '__main__':
                 success_count=success_count+1
 
             state[0] = next_state
-        print(env.uavs[0].step)
+
+        with open("path_planning/command.txt", 'w') as file:
+            file.write(cmd)
         env.ax.scatter(env.target[0].x, env.target[0].y, env.target[0].z,c='red')
-        plt.pause(100) 
+        plt.pause(100)
+
+
 
 
 

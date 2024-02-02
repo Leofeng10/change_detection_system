@@ -73,29 +73,34 @@ class TelloUI:
     def send_cmd_from_text(self):
         f = open(self.file_name, "r")
         commands = f.readlines()
-        self.tello.takeoff()
-        time.sleep(5)
-        self.tello.move_right(0.3)
-        time.sleep(5)
-        self.tello.rotate_ccw(self.degree)
-        time.sleep(5)
-        self.tello.move_forward(1)
-        time.sleep(10)
-        self.tello.move_left(0.3)
-        time.sleep(10)
-        self.tello.land()
-        # for command in commands:
-        #     if command != '' and command != '\n':
-        #         command = command.rstrip()
-        #
-        #         if command.find('delay') != -1:
-        #             sec = float(command.partition('delay')[2])
-        #             print('delay %s' % sec)
-        #             time.sleep(sec)
-        #             pass
-        #         else:
-        #             self.tello.send_command(command)
-        #             print(command)
+        # self.tello.takeoff()
+        # time.sleep(5)
+        # self.tello.move_right(0.3)
+        # time.sleep(5)
+        # self.tello.rotate_ccw(self.degree)
+        # time.sleep(5)
+        # self.tello.move_forward(1)
+        # time.sleep(10)
+        # self.tello.move_left(0.3)
+        # time.sleep(10)
+        # self.tello.land()
+        for command in commands:
+            if command[0] == "(":
+                values = command.strip("()").split(',')
+                self.tello.pos = [int(v) for v in values]
+                continue
+            if command != '' and command != '\n':
+
+                command = command.rstrip()
+
+                if command.find('delay') != -1:
+                    sec = float(command.partition('delay')[2])
+                    print('delay %s' % sec)
+                    time.sleep(sec)
+                    pass
+                else:
+                    self.tello.send_command(command)
+                    print(command)
 
     def videoLoop(self):
         """
