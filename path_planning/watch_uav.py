@@ -6,6 +6,7 @@ import torch
 import matplotlib
 import matplotlib.pyplot as plt
 import time
+import argparse
 from env import *
 import torch
 LEARNING_RATE = 0.00033
@@ -16,6 +17,17 @@ threshold = 200
 env = Env(space_dim,action_dim,LEARNING_RATE)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('x', type=int)
+    parser.add_argument('y', type=int)
+    parser.add_argument('z', type=int)
+
+    parser.add_argument('ox', type=int)
+    parser.add_argument('oy', type=int)
+    parser.add_argument('oz', type=int)
+
+    args = parser.parse_args()
+    print((args.x, args.y, args.z))
     check_point_Qlocal=torch.load('path_planning/Qlocal.pth')
     check_point_Qtarget=torch.load('path_planning/Qtarget.pth')
     env.q_target.load_state_dict(check_point_Qtarget['model'])
@@ -23,7 +35,9 @@ if __name__ == '__main__':
     env.optim.load_state_dict(check_point_Qlocal['optimizer'])
     epoch=check_point_Qlocal['epoch']
     env.level= 8
-    state = env.reset_test1(30, 30, 10)
+    state = env.reset_test()
+
+    # state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
     total_reward = 0
     env.render(1)
     n_done=0

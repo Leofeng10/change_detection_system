@@ -106,8 +106,7 @@ class UAV():
         else:
             self.p_crash=math.exp(-b*self.nearest_distance*self.ev.v0*self.ev.v0/(0.5*math.pow(self.ev.WindField[0]*math.cos(abs(self.ev.WindField[1]-self.dir_ob)-self.ev.v0),2)))
 
-        
-        
+        r_climb = 0
         r_climb=-wc*(abs(self.z-self.target[2]))
         if self.distance>1:
             r_target=2*(self.d_origin/self.distance)*Ddistance

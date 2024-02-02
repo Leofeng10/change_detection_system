@@ -116,7 +116,7 @@ def main():
         # vutils.save_image(visual, 'C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i, normalize=True,
         #                   nrow=16)
         vutils.save_image(visual,
-                          'C:/Users/Feng Zhunyi/Desktop/change_detection/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i,
+                          'C:/Users/Feng Zhunyi/Desktop/change_detection/VanillaAE/results/imgs/%03d.png' % i,
                           normalize=True,
                           nrow=16)
 

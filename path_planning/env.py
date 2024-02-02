@@ -208,7 +208,7 @@ class Env(object):
 
         return self.state
 
-    def reset_test1(self, new_ox, new_oy, new_oz):
+    def reset_test1(self, new_ox, new_oy, new_oz, new_x, new_y, new_z):
         self.uavs = []
         self.bds = []
         self.map = np.zeros((self.len, self.width, self.h))  # 重置障碍物
@@ -236,8 +236,8 @@ class Env(object):
 
         self.target = [sn(x, y, z)]
         self.map[x, y, z] = 2
-
-        self.uavs.append(UAV(10, 10, 3, self))
+        print(new_x, new_y, new_z)
+        self.uavs.append(UAV(new_x, new_y, new_z, self))
         self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
