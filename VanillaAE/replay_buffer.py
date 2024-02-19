@@ -1,8 +1,3 @@
-''' https://github.com/pytorch/tutorials/blob/master/intermediate_source/reinforcement_q_learning.py
-    https://gist.github.com/Pocuston/13f1a7786648e1e2ff95bfad02a51521 
-'''
-
-
 import random
 from collections import namedtuple
 
