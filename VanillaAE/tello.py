@@ -1,13 +1,19 @@
-import ctypes
 import socket
 import threading
 
 
 import cv2
-from skimage.metrics import structural_similarity
 from sklearn.metrics import mean_squared_error
-from path_planning.env import *
+from env import *
 import torch
+import ast
+import argparse
+import os
+import torchvision.transforms as transforms
+
+import torch.backends.cudnn as cudnn
+from model_cbam import UC
+from utils import get_dataloader, print_and_write_log, set_random_seed
 
 
 class Tello:
@@ -42,9 +48,91 @@ class Tello:
         self.last_height = 0
         self.socket.bind((local_ip, local_port))
         self.pos = [0, 0, 0]
-        self.model = None
-        self.env = None
-        self.file_name = "path_planning/command.txt"
+        parser = argparse.ArgumentParser()
+        # basic
+        parser.add_argument('--dataset', default='', help='folderall | filelist | pairfilelist')
+        parser.add_argument('--dataroot', default='', help='path to dataset')
+        parser.add_argument('--datalist', default='', help='path to dataset file list')
+        parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
+        parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
+        parser.add_argument('--imageSize', type=int, default=64,
+                            help='the height / width of the input image to network')
+        parser.add_argument('--nz', type=int, default=256, help='dimension of the latent layers')
+        parser.add_argument('--nblk', type=int, default=2, help='number of blocks')
+        parser.add_argument('--nepoch', type=int, default=100, help='number of epochs to train')
+        parser.add_argument('--lr', type=float, default=0.001, help='learning rate, default=0.001')
+        parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for adam. default=0.9')
+        parser.add_argument('--beta2', type=float, default=0.999, help='beta2 for adam. default=0.999')
+        parser.add_argument('--no_cuda', action='store_true', help='not enable cuda (if use CPU only)')
+        parser.add_argument('--netG', default='', help='path to netG (to continue training)')
+        parser.add_argument('--expf', default='./experiments',
+                            help='folder to save visualized images and model checkpoints')
+        parser.add_argument('--manualSeed', type=int, help='manual random seed')
+
+        # display and save
+        parser.add_argument('--log_iter', type=int, default=50, help='log interval (iterations)')
+        parser.add_argument('--visualize_iter', type=int, default=500, help='visualization interval (iterations)')
+        parser.add_argument('--ckpt_save_epoch', type=int, default=1, help='checkpoint save interval (epochs)')
+
+        # losses
+        parser.add_argument('--mse_w', type=float, default=1.0, help='weight for mse (L2) spatial loss')
+        parser.add_argument('--ffl_w', type=float, default=0.0, help='weight for focal frequency loss')
+        parser.add_argument('--alpha', type=float, default=1.0,
+                            help='the scaling factor alpha of the spectrum weight matrix for flexibility')
+        parser.add_argument('--patch_factor', type=int, default=1,
+                            help='the factor to crop image patches for patch-based focal frequency loss')
+        parser.add_argument('--ave_spectrum', action='store_true', help='whether to use minibatch average spectrum')
+        parser.add_argument('--log_matrix', action='store_true',
+                            help='whether to adjust the spectrum weight matrix by logarithm')
+        parser.add_argument('--batch_matrix', action='store_true',
+                            help='whether to calculate the spectrum weight matrix using batch-based statistics')
+        parser.add_argument('--freq_start_epoch', type=int, default=1,
+                            help='the start epoch to add focal frequency loss')
+
+        opt = parser.parse_args()
+        opt.is_train = False
+
+        os.makedirs(os.path.join(opt.expf, 'images'), exist_ok=True)
+        os.makedirs(os.path.join(opt.expf, 'checkpoints'), exist_ok=True)
+        os.makedirs(os.path.join(opt.expf, 'logs'), exist_ok=True)
+        train_log_file = os.path.join(opt.expf, 'logs', 'train_log.txt')
+        opt.train_log_file = train_log_file
+
+        cudnn.benchmark = True
+
+        if opt.manualSeed is None:
+            opt.manualSeed = random.randint(1, 10000)
+        print_and_write_log(train_log_file, "Random Seed: %d" % opt.manualSeed)
+        set_random_seed(opt.manualSeed)
+
+        if torch.cuda.is_available() and opt.no_cuda:
+            print_and_write_log(train_log_file,
+                                "WARNING: You have a CUDA device, so you should probably run without --no_cuda")
+
+        dataloader, nc = get_dataloader(opt)
+        opt.nc = nc
+
+        print_and_write_log(train_log_file, opt)
+
+        self.model = UC(opt)
+
+        # DQN
+        LEARNING_RATE = 0.00033
+        num_episodes = 80000
+        space_dim = 42  # n_spaces
+        action_dim = 27  # n_actions
+        threshold = 200
+        env = Env(space_dim, action_dim, LEARNING_RATE)
+        check_point_Qlocal = torch.load('./VanillaAE/Qlocal.pth')
+        check_point_Qtarget = torch.load('./VanillaAE/Qtarget.pth')
+        env.q_target.load_state_dict(check_point_Qtarget['model'])
+        env.q_local.load_state_dict(check_point_Qlocal['model'])
+        env.optim.load_state_dict(check_point_Qlocal['optimizer'])
+        epoch = check_point_Qlocal['epoch']
+        env.level = 8
+        self.env = env
+        print("Model created")
+        self.file_name = "./VanillaAE/command.txt"
 
         # thread for receiving cmd ack
         self.receive_thread = threading.Thread(target=self._receive_thread)
@@ -89,25 +177,23 @@ class Tello:
         self.socket.close()
         self.socket_video.close()
 
-    def setup(self, my_model, my_env):
-        self.model = my_model
-        self.env = my_env
-
 
     def execute(self):
         f = open(self.file_name, "r")
         commands = f.readlines()
         for command in commands:
             if command[0] == "(":
-                values = command.strip("()").split(',')
+                values = ast.literal_eval(command.strip())
                 self.pos = [int(v) for v in values]
                 ret, frame = self.camera.read()
                 if ret:
                     resize = cv2.resize(frame, (256, 256))
+                    cv2.imshow("Image", resize)
                     loss = self.detect(resize)
+                    print("Loss: ", loss)
                     if loss > 120:
                         return False
-            if command != '' and command != '\n':
+            elif command != '' and command != '\n':
 
                 command = command.rstrip()
 
@@ -175,7 +261,16 @@ class Tello:
 
 
     def detect(self, img):
-        real_cpu = img.cpu()
+        t = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        real_cpu = t(img)
+        # real_cpu = torch.from_numpy(img)
+        real_cpu = real_cpu.to(torch.float)
+        real_cpu = real_cpu.unsqueeze(0)
+        print(real_cpu.size())
         recon = self.model.sample(real_cpu)
         recon_img = self.tensor2im(recon)
         real_img = self.tensor2im(real_cpu)

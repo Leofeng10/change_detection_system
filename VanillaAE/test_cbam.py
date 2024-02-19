@@ -110,7 +110,10 @@ def main():
 
     for i, data in enumerate(tqdm(dataloader), 0):
         img, img_path = data
+        print(img.size())
+
         real_cpu = img.cpu()
+        print(real_cpu.size())
         recon = model.sample(real_cpu)
         visual = torch.cat([real_cpu[:16], recon.detach().cpu()[:16]], 0)
         # vutils.save_image(visual, 'C:/Users/Feng Zhunyi/Desktop/focal-frequency-loss-master/VanillaAE/results/celeba/epoch_020_seed_1112_with_input/%03d.png' % i, normalize=True,
