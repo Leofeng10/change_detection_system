@@ -131,6 +131,8 @@ class Tello:
         epoch = check_point_Qlocal['epoch']
         env.level = 8
         self.env = env
+        self.frame_num = 0
+        self.stop = False
         print("Model created")
         self.file_name = "./VanillaAE/command.txt"
 
@@ -163,7 +165,7 @@ class Tello:
 
 
     def begin(self):
-        while True:
+        while not self.stop:
             success = self.execute()
             if not success:
                 self.re_plan()
@@ -181,13 +183,18 @@ class Tello:
     def execute(self):
         f = open(self.file_name, "r")
         commands = f.readlines()
+        len_cmd = len(commands)
+        curr_cmd = 0
         for command in commands:
+            curr_cmd += 1
             if command[0] == "(":
                 values = ast.literal_eval(command.strip())
                 self.pos = [int(v) for v in values]
                 ret, frame = self.camera.read()
                 if ret:
                     resize = cv2.resize(frame, (256, 256))
+                    cv2.imwrite('C:/Users/Feng Zhunyi/Desktop/change_detection/VanillaAE/results/imgs/%03d.png' % self.frame_num, resize)
+                    self.frame_num += 1
                     cv2.imshow("Image", resize)
                     loss = self.detect(resize)
                     print("Loss: ", loss)
@@ -205,6 +212,9 @@ class Tello:
                 else:
                     self.send_command(command)
                     print(command)
+
+                if curr_cmd == len_cmd:
+                    self.stop = True
         return True
 
     def read(self):
@@ -270,7 +280,6 @@ class Tello:
         # real_cpu = torch.from_numpy(img)
         real_cpu = real_cpu.to(torch.float)
         real_cpu = real_cpu.unsqueeze(0)
-        print(real_cpu.size())
         recon = self.model.sample(real_cpu)
         recon_img = self.tensor2im(recon)
         real_img = self.tensor2im(real_cpu)
