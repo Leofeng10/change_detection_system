@@ -95,7 +95,7 @@ class UAV():
         temp = action
         b = 3
         wt = 0.005
-        wc = 0.07
+        wc = 0.01
         we = 0
         c = 0.05
         crash = 0
@@ -342,7 +342,7 @@ class Env(object):
         self.WindField.append(2*math.pi*random.random())
         for i in range(random.randint(self.level,2*self.level)):
             self.bds.append(building(random.randint(10,self.len-10),random.randint(10,self.width-10),random.randint(1,10),random.randint(1,10),random.randint(9,13)))
-            self.map[self.bds[i].x-self.bds[i].l:self.bds[i].x+self.bds[i].l,self.bds[i].y-self.bds[i].w:self.bds[i].y+self.bds[i].w,0:self.bds[i].h]=1
+            self.map[self.bds[i].x-self.bds[i].l - 5:self.bds[i].x+self.bds[i].l + 5,self.bds[i].y-self.bds[i].w - 5:self.bds[i].y+self.bds[i].w + 5,0:self.bds[i].h]=1
 
         x=0
         y=0
@@ -371,35 +371,76 @@ class Env(object):
 
         return self.state
     def reset_test(self):
-        self.uavs=[]
-        self.bds=[]
-        self.map=np.zeros((self.len,self.width,self.h))
-        self.WindField=[]
-        self.WindField.append(np.random.normal(40,5))
-        self.WindField.append(2*math.pi*random.random())
-        for i in range(random.randint(self.level,2*self.level)):
-            self.bds.append(building(random.randint(10,self.len-10),random.randint(10,self.width-10),random.randint(1,10),random.randint(1,10),random.randint(9,13)))
-            self.map[self.bds[i].x-self.bds[i].l:self.bds[i].x+self.bds[i].l,self.bds[i].y-self.bds[i].w:self.bds[i].y+self.bds[i].w,0:self.bds[i].h]=1
-        x=0
-        y=0
-        z=0
-        while(1):
-            x=random.randint(60,90)
-            y=random.randint(10,90)
-            z=random.randint(3,15)
-            if self.map[x,y,z]==0:
-                break
-        self.target=[sn(x,y,z)]
-        self.map[x,y,z]=2
-        self.uavs.append(UAV(20,20,3,self))
-        self.state=np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
+        # case 1
+        # self.uavs=[]
+        # self.bds=[]
+        # self.map=np.zeros((self.len,self.width,self.h))
+        # self.WindField=[]
+        # self.WindField.append(1)
+        # self.WindField.append(0)
+        # self.bds.append(building(35, 40, 20, 5, 10))
+        # self.bds.append(building(80, 60, 5, 10, 5))
+        # for i in range(len(self.bds)):
+        #     self.map[self.bds[i].x - self.bds[i].l - 5:self.bds[i].x + self.bds[i].l + 5,
+        #     self.bds[i].y - self.bds[i].w - 5:self.bds[i].y + self.bds[i].w + 5, 0:self.bds[i].h] = 1
+        # x=30
+        # y=55
+        # z=5
+        #
+        # self.target=[sn(x,y,z)]
+        # self.map[x,y,z]=2
+        # self.uavs.append(UAV(60,20,5,self))
+        # self.state=np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
+        #
+        # return self.state
+
+        # self.uavs=[]
+        # self.bds=[]
+        # self.map=np.zeros((self.len,self.width,self.h))
+        # self.WindField=[]
+        # self.WindField.append(1)
+        # self.WindField.append(0)
+        # self.bds.append(building(35, 40, 20, 5, 20))
+        # self.bds.append(building(80, 60, 5, 10, 5))
+        # for i in range(len(self.bds)):
+        #     self.map[self.bds[i].x - self.bds[i].l - 5:self.bds[i].x + self.bds[i].l + 5,
+        #     self.bds[i].y - self.bds[i].w - 5:self.bds[i].y + self.bds[i].w + 5, 0:self.bds[i].h] = 1
+        # x=70
+        # y=55
+        # z=5
+        #
+        # self.target=[sn(x,y,z)]
+        # self.map[x,y,z]=2
+        # self.uavs.append(UAV(40,20,8,self))
+        # self.state=np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
+        #
+        # return self.state
+
+        self.uavs = []
+        self.bds = []
+        self.map = np.zeros((self.len, self.width, self.h))
+        self.WindField = []
+        self.WindField.append(1)
+        self.WindField.append(0)
+        self.bds.append(building(35, 40, 20, 5, 5))
+        self.bds.append(building(80, 60, 5, 10, 5))
+        for i in range(len(self.bds)):
+            self.map[self.bds[i].x - self.bds[i].l - 5:self.bds[i].x + self.bds[i].l + 5,
+            self.bds[i].y - self.bds[i].w - 5:self.bds[i].y + self.bds[i].w + 5, 0:self.bds[i].h] = 1
+        x = 70
+        y = 55
+        z = 5
+
+        self.target = [sn(x, y, z)]
+        self.map[x, y, z] = 2
+        self.uavs.append(UAV(40, 20, 2, self))
+        self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
-
     def reset_test1(self, new_ox, new_oy, new_oz, new_x, new_y, new_z):
         self.uavs = []
         self.bds = []
-        self.map = np.zeros((self.len, self.width, self.h))  # 重置障碍物
+        self.map = np.zeros((self.len, self.width, self.h))
         self.WindField = []
         self.WindField.append(1)
         self.WindField.append(0)
@@ -435,7 +476,8 @@ class Env(object):
         if dx == 1:
             cmd += "forward 1\n"
         elif dx == -1:
-            cmd += "back 1\n"
+            cmd += "ccw 180"
+            cmd += "forward 1\n"
 
         if dy == 1:
             cmd += "ccw 90\n"

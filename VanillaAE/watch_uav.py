@@ -28,16 +28,16 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print((args.x, args.y, args.z))
-    check_point_Qlocal=torch.load('path_planning/Qlocal.pth')
-    check_point_Qtarget=torch.load('path_planning/Qtarget.pth')
+    check_point_Qlocal=torch.load('./VanillaAE/Qlocal.pth')
+    check_point_Qtarget=torch.load('VanillaAE/Qtarget.pth')
     env.q_target.load_state_dict(check_point_Qtarget['model'])
     env.q_local.load_state_dict(check_point_Qlocal['model'])
     env.optim.load_state_dict(check_point_Qlocal['optimizer'])
     epoch=check_point_Qlocal['epoch']
     env.level= 8
-    # state = env.reset_test()
+    state = env.reset_test()
 
-    state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
+    # state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
     total_reward = 0
     env.render(1)
     n_done=0
@@ -71,8 +71,8 @@ if __name__ == '__main__':
 
             state[0] = next_state
 
-        with open("path_planning/command.txt", 'w') as file:
-            file.write(cmd)
+        # with open("path_planning/command.txt", 'w') as file:
+        #     file.write(cmd)
         env.ax.scatter(env.target[0].x, env.target[0].y, env.target[0].z,c='red')
         plt.pause(100)
 
