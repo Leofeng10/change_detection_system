@@ -46,7 +46,7 @@ if __name__ == '__main__':
     n_test=1
     n_creash=0
 
-    cmd = "command\n"
+    cmd = ""
     for i in range(n_test):
         while(1):
             if env.uavs[0].done:
@@ -57,7 +57,8 @@ if __name__ == '__main__':
 
 
             print(dx, dy, dz, x, y, z, uav_done)
-            cmd += env.convert_to_cmd(dx, dy, dz)
+            print( env.convert_to_cmd_simulator(dy, dx, dz))
+            cmd += env.convert_to_cmd_simulator(dy, dx, dz)
             cmd += "(" + str(x) + "," +  str(y) + "," + str(z) + ")\n"
 
             total_reward += reward
@@ -71,8 +72,8 @@ if __name__ == '__main__':
 
             state[0] = next_state
 
-        # with open("path_planning/command.txt", 'w') as file:
-        #     file.write(cmd)
+        with open("VanillaAE/command.txt", 'w') as file:
+            file.write(cmd)
         env.ax.scatter(env.target[0].x, env.target[0].y, env.target[0].z,c='red')
         plt.pause(100)
 

@@ -437,6 +437,7 @@ class Env(object):
         self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
+
     def reset_test1(self, new_ox, new_oy, new_oz, new_x, new_y, new_z):
         self.uavs = []
         self.bds = []
@@ -490,6 +491,32 @@ class Env(object):
             cmd += "up 1\n"
         elif dz == -1:
             cmd += "down 1\n"
+
+        return cmd
+
+    def convert_to_cmd_simulator(self, dx, dy, dz):
+        cmd = ""
+        if dx == 1 and dy == 1:
+            cmd = "2, 45\n"
+        elif dx == -1 and dy == -1:
+            cmd = "2, -135\n"
+        elif dx == 1 and dy == 0:
+            cmd += "1, 0\n"
+        elif dx == -1 and dy == 0:
+            cmd += "1, 180\n"
+        elif dx == 0 and dy == 1:
+            cmd += "1, 90\n"
+        elif dx == 0 and dy == -1:
+            cmd += "1, -90\n"
+        elif dx == 1 and dy == -1:
+            cmd += "2, -45\n"
+        elif dx == -1 and dy == 1:
+            cmd += "2, 135\n"
+
+        if dz == 1:
+            cmd += "4, 0\n"
+        elif dz == -1:
+            cmd += "5, 0\n"
 
         return cmd
 

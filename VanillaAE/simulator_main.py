@@ -29,6 +29,7 @@ class GraphicsEngine:
         pg.init()
         # window size
         self.WIN_SIZE = win_size
+        self.angle = 0
         # set opengl attr
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
@@ -44,6 +45,7 @@ class GraphicsEngine:
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
         # create an object to help track time
         self.clock = pg.time.Clock()
+        self.file_name = "./VanillaAE/command.txt"
         self.time = 0
         self.delta_time = 0
         # light
@@ -56,7 +58,6 @@ class GraphicsEngine:
         self.scene = Scene(self)
         # renderer
         self.scene_renderer = SceneRenderer(self)
-        self.directions = [6,0, 6, 1, 6, 2, 3, 4, 5, 5, 4, 3, 2, 1, 0]
         self.curr = 0
 
         self.abort_flag = False
@@ -129,6 +130,7 @@ class GraphicsEngine:
         print_and_write_log(train_log_file, opt)
 
         self.model = UC(opt)
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++___________________")
 
         # DQN
         LEARNING_RATE = 0.00033
@@ -146,6 +148,7 @@ class GraphicsEngine:
         env.level = 8
         self.env = env
         self.frame_num = 0
+        self.pos = [0, 0, 2]
         self.stop = False
         print("Model created")
         self.file_name = "./VanillaAE/command.txt"
@@ -209,16 +212,21 @@ class GraphicsEngine:
     def run(self):
         while not self.stop:
             success = self.execute()
-            if not success:
-                self.re_plan()
-            else:
-                break
+
+            # if not success:
+            #     self.re_plan()
+            # else:
+            #     break
+
 
     def re_plan(self):
+        print("-----------------")
+        print("Re plan path")
+        print("-----------------")
         state = self.env.reset_test1(self.pos[0], self.pos[1] + 1, self.pos[2], self.pos[0], self.pos[1], self.pos[2])
         total_reward = 0
         n_test = 1
-        cmd = "command\n"
+        cmd = ""
         for i in range(n_test):
             while (1):
                 if self.env.uavs[0].done:
@@ -228,8 +236,8 @@ class GraphicsEngine:
                 next_state, reward, uav_done, info, dx, dy, dz, x, y, z = self.env.step(action.item(), 0)
 
                 print(dx, dy, dz, x, y, z, uav_done)
-                cmd += self.env.convert_to_cmd(dx, dy, dz)
-                cmd += "(" + str(x) + " " + str(y) + " " + str(z) + ")\n"
+                cmd += self.env.convert_to_cmd_simulator(dx, dy, dz)
+                cmd += "(" + str(x) + "," + str(y) + "," + str(z) + ")\n"
 
                 total_reward += reward
                 if uav_done:
@@ -237,43 +245,81 @@ class GraphicsEngine:
 
                 state[0] = next_state
 
-            with open("drone/command.txt", 'w') as file:
+            with open("VanillaAE/command.txt", 'w') as file:
                 file.write(cmd)
 
 
     def execute(self):
         count = 0
-        while True:
-            self.get_time()
-            self.check_events()
-            self.camera.update()
-            self.render()
-            self.delta_time = self.clock.tick(60)
-            count +=1
-            if count % 100 == 0:
+        f = open(self.file_name, "r")
+        commands = f.readlines()
+        len_cmd = len(commands)
+        curr_cmd = 0
+        for command in commands:
+            print("command", curr_cmd, "direction: ", command)
+            curr_cmd += 1
+
+            if command[0] == "(":
+                values = ast.literal_eval(command.strip())
+                self.pos = [int(v) for v in values]
                 screen = pygame.display.get_surface()
                 size = screen.get_size()
                 buffer = glReadPixels(0, 0, *size, GL_RGBA, GL_UNSIGNED_BYTE)
                 screen_surf = pygame.image.fromstring(buffer, size, "RGBA")
                 pg.image.save(screen_surf, "VanillaAE/screenshot/%d.jpg" % count)
-                img = cv2.imread( "VanillaAE/screenshot/%d.jpg" % count)
+                img = cv2.imread("VanillaAE/screenshot/%d.jpg" % count)
                 img = cv2.flip(img, 0)
                 img = cv2.resize(img, (256, 256))
                 loss = self.detect(img)
                 print("Loss: ", loss)
-                if loss > 120:
+                if loss > 1200:
+                    print(loss, False)
                     return False
+            elif command != '' and command != '\n':
 
+                command = command.rstrip()
+                command = command.split(",")
+                self.run_command(command)
 
+            if curr_cmd == len_cmd:
+                self.stop = True
 
+    def run_command(self, command):
+        if int(command[1]) != self.angle:
+            turn = int(command[1]) - self.angle
+            self.angle = int(command[1])
+            for i in range(1000):
+                self.get_time()
+                self.check_events()
+                self.camera.update(0, turn / 1000)
+                self.render()
+        if int(command[0]) != 0:
+            if int(command[0]) == 1:
+                for i in range(500):
+                    self.get_time()
+                    self.check_events()
+                    self.camera.update(int(command[0]), 0)
+                    self.render()
+            elif int(command[0]) == 4 or int(command[0]) == 5:
+                for i in range(1500):
+                    self.get_time()
+                    self.check_events()
+                    self.camera.update(int(command[0]), 0)
+                    self.render()
+            else:
 
-
-
+                for i in range(300):
+                    self.get_time()
+                    self.check_events()
+                    self.camera.update(1, 0)
+                    self.render()
 
 
 
 app = GraphicsEngine()
 app.run()
+
+
 
 
 
@@ -416,10 +462,10 @@ app.run()
 
 
 
-
-
-app = GraphicsEngine()
-app.run()
+#
+#
+# app = GraphicsEngine()
+# app.run()
 
 
 
