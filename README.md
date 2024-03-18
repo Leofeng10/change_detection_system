@@ -1,15 +1,15 @@
 ## Change Detection in Video Feed
-installation
+installation <br>
 conda install pytorch==2.0.0 torchvision==0.15.0 pytorch-cuda=11.8 -c pytorch -c nvidia 
-pillow
-tqdm
-focal-frequency-loss
-opencv-python
-glm
-pygame
+pillow <br>
+tqdm <br>
+focal-frequency-loss <br>
+opencv-python <br>
+glm <br>
+pygame  <br>
 
 ## Hardware
-Tello Drone
+Tello Drone <br>
 GPU NVIDIA 4070
 
 ## Reference
