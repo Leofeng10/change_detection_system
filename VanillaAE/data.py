@@ -1,10 +1,3 @@
-###############################################################################
-# Code from
-# https://github.com/pytorch/vision/blob/master/torchvision/datasets/folder.py
-# Modified the original code so that `ImageFolderAll` also loads images from
-# the current directory as well as the subdirectories
-###############################################################################
-
 import os
 
 import torch.utils.data as data

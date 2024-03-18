@@ -139,10 +139,6 @@ def main():
         scaled_loss = np.exp(loss / 20)
         update(scaled_loss)
 
-    # pp.subplot(1, 2, 1)
-    # pp.plot(losses, color='red')
-    # pp.show()
-
     ax.set_xlabel("Time")
     ax.set_ylabel("Loss")
     plt.show()

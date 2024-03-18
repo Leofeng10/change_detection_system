@@ -371,51 +371,6 @@ class Env(object):
 
         return self.state
     def reset_test(self):
-        # case 1
-        # self.uavs=[]
-        # self.bds=[]
-        # self.map=np.zeros((self.len,self.width,self.h))
-        # self.WindField=[]
-        # self.WindField.append(1)
-        # self.WindField.append(0)
-        # self.bds.append(building(35, 40, 20, 5, 10))
-        # self.bds.append(building(80, 60, 5, 10, 5))
-        # for i in range(len(self.bds)):
-        #     self.map[self.bds[i].x - self.bds[i].l - 5:self.bds[i].x + self.bds[i].l + 5,
-        #     self.bds[i].y - self.bds[i].w - 5:self.bds[i].y + self.bds[i].w + 5, 0:self.bds[i].h] = 1
-        # x=30
-        # y=55
-        # z=5
-        #
-        # self.target=[sn(x,y,z)]
-        # self.map[x,y,z]=2
-        # self.uavs.append(UAV(60,20,5,self))
-        # self.state=np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
-        #
-        # return self.state
-
-        # self.uavs=[]
-        # self.bds=[]
-        # self.map=np.zeros((self.len,self.width,self.h))
-        # self.WindField=[]
-        # self.WindField.append(1)
-        # self.WindField.append(0)
-        # self.bds.append(building(35, 40, 20, 5, 20))
-        # self.bds.append(building(80, 60, 5, 10, 5))
-        # for i in range(len(self.bds)):
-        #     self.map[self.bds[i].x - self.bds[i].l - 5:self.bds[i].x + self.bds[i].l + 5,
-        #     self.bds[i].y - self.bds[i].w - 5:self.bds[i].y + self.bds[i].w + 5, 0:self.bds[i].h] = 1
-        # x=70
-        # y=55
-        # z=5
-        #
-        # self.target=[sn(x,y,z)]
-        # self.map[x,y,z]=2
-        # self.uavs.append(UAV(40,20,8,self))
-        # self.state=np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
-        #
-        # return self.state
-
         self.uavs = []
         self.bds = []
         self.map = np.zeros((self.len, self.width, self.h))
@@ -433,8 +388,7 @@ class Env(object):
 
         self.target = [sn(x, y, z)]
         self.map[x, y, z] = 2
-        # self.uavs.append(UAV(40, 20, 2, self))
-        self.uavs.append(UAV(43, 21, 7, self))
+        self.uavs.append(UAV(42, 21, 6, self))
         self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
