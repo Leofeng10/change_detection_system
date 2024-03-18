@@ -69,7 +69,7 @@ class Camera:
         # if keys[pg.K_e]:
         #     self.position -= self.up * velocity
 
-        velocity = 0.001
+        velocity = 0.002
         if direction == 0:
             self.position += self.forward * velocity
         if direction == 1:

@@ -1,3 +1,5 @@
+import time
+
 import pygame as pg
 import sys
 from simulator_model import *
@@ -295,24 +297,27 @@ class GraphicsEngine:
                 self.render()
         if int(command[0]) != 0:
             if int(command[0]) == 1:
-                for i in range(500):
+                for i in range(250):
                     self.get_time()
                     self.check_events()
                     self.camera.update(int(command[0]), 0)
                     self.render()
             elif int(command[0]) == 4 or int(command[0]) == 5:
-                for i in range(1500):
+                for i in range(750):
                     self.get_time()
                     self.check_events()
                     self.camera.update(int(command[0]), 0)
                     self.render()
             else:
 
-                for i in range(300):
+                for i in range(150):
                     self.get_time()
                     self.check_events()
                     self.camera.update(1, 0)
                     self.render()
+        else:
+            time.sleep(10)
+
 
 
 
