@@ -433,7 +433,8 @@ class Env(object):
 
         self.target = [sn(x, y, z)]
         self.map[x, y, z] = 2
-        self.uavs.append(UAV(40, 20, 2, self))
+        # self.uavs.append(UAV(40, 20, 2, self))
+        self.uavs.append(UAV(43, 21, 7, self))
         self.state = np.vstack([uav.state() for (_, uav) in enumerate(self.uavs)])
 
         return self.state
@@ -446,23 +447,19 @@ class Env(object):
         self.WindField.append(1)
         self.WindField.append(0)
 
-        new_l = 5
-        new_w = 5
-        l = 20
-        w = 10
+        new_l = 2
+        new_w = 2
         self.bds.append(building(new_ox, new_oy, new_l, new_w, new_oz))
-        self.bds.append(building(40, 10, l, w, 5))
-        self.bds.append(building(100, 10, l, w, 5))
-        self.bds.append(building(80, 60, l, w, 5))
-        self.bds.append(building(10, 80, l, w, 5))
+        self.bds.append(building(35, 40, 20, 5, 5))
+        self.bds.append(building(80, 60, 5, 10, 5))
 
         for i in range(len(self.bds)):
             self.map[self.bds[i].x - self.bds[i].l:self.bds[i].x + self.bds[i].l,
             self.bds[i].y - self.bds[i].w:self.bds[i].y + self.bds[i].w, 0:self.bds[i].h] = 1
 
-        x = 90
-        y = 90
-        z = 5
+        x = 70
+        y = 55
+        z = 6
 
         self.target = [sn(x, y, z)]
         self.map[x, y, z] = 2

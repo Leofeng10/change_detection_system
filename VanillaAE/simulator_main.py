@@ -1,5 +1,7 @@
+import threading
 import time
 
+import matplotlib.pyplot as plt
 import pygame as pg
 import sys
 from simulator_model import *
@@ -24,6 +26,12 @@ from utils import get_dataloader, print_and_write_log, set_random_seed
 import pygame.image
 from OpenGL.GL import *
 from OpenGL.GLU import *
+import matplotlib.pyplot as pp
+from skimage.metrics import structural_similarity
+from sklearn.metrics import mean_squared_error
+
+
+
 
 class GraphicsEngine:
     def __init__(self, win_size=(1600, 900)):
@@ -152,6 +160,7 @@ class GraphicsEngine:
         self.frame_num = 0
         self.pos = [0, 0, 2]
         self.stop = False
+        self.saved_loss = []
         print("Model created")
         self.file_name = "./VanillaAE/command.txt"
 
@@ -215,10 +224,10 @@ class GraphicsEngine:
         while not self.stop:
             success = self.execute()
 
-            # if not success:
-            #     self.re_plan()
-            # else:
-            #     break
+            if not success:
+                self.re_plan()
+            else:
+                break
 
 
     def re_plan(self):
@@ -264,6 +273,7 @@ class GraphicsEngine:
             if command[0] == "(":
                 values = ast.literal_eval(command.strip())
                 self.pos = [int(v) for v in values]
+                print(self.pos)
                 screen = pygame.display.get_surface()
                 size = screen.get_size()
                 buffer = glReadPixels(0, 0, *size, GL_RGBA, GL_UNSIGNED_BYTE)
@@ -274,7 +284,9 @@ class GraphicsEngine:
                 img = cv2.resize(img, (256, 256))
                 loss = self.detect(img)
                 print("Loss: ", loss)
-                if loss > 1200:
+                self.saved_loss.append(loss)
+
+                if loss > 70:
                     print(loss, False)
                     return False
             elif command != '' and command != '\n':
@@ -290,27 +302,27 @@ class GraphicsEngine:
         if int(command[1]) != self.angle:
             turn = int(command[1]) - self.angle
             self.angle = int(command[1])
-            for i in range(1000):
+            for i in range(200):
                 self.get_time()
                 self.check_events()
-                self.camera.update(0, turn / 1000)
+                self.camera.update(0, turn / 200)
                 self.render()
         if int(command[0]) != 0:
             if int(command[0]) == 1:
-                for i in range(250):
+                for i in range(125):
                     self.get_time()
                     self.check_events()
                     self.camera.update(int(command[0]), 0)
                     self.render()
             elif int(command[0]) == 4 or int(command[0]) == 5:
-                for i in range(750):
+                for i in range(375):
                     self.get_time()
                     self.check_events()
                     self.camera.update(int(command[0]), 0)
                     self.render()
             else:
 
-                for i in range(150):
+                for i in range(75):
                     self.get_time()
                     self.check_events()
                     self.camera.update(1, 0)
@@ -321,156 +333,51 @@ class GraphicsEngine:
 
 
 
-app = GraphicsEngine()
-app.run()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# import pygame as pg
-# import moderngl as mgl
-# import sys
-# from model import *
-# from camera import Camera
-# from light import Light
-# from mesh import Mesh
-# from scene import Scene
-# from scene_renderer import SceneRenderer
-# import pygame.camera
-# import pygame.image
-# from OpenGL.GL import *
-# from OpenGL.GLU import *
-#
-# import time
-
-#
-# class GraphicsEngine:
-#     def __init__(self, win_size=(1600, 900)):
-#         # init pygame modules
-#         pg.init()
-#         # glEnable(GL_DEPTH_TEST)
-#         # pygame.camera.init()
-#         # window size
-#         self.WIN_SIZE = win_size
-#         # set opengl attr
-#         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
-#         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
-#         pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
-#         # create opengl context
-#         self.screen = pg.display.set_mode(self.WIN_SIZE, flags=pg.OPENGL | pg.DOUBLEBUF)
-#         # mouse settings
-#         pg.event.set_grab(True)
-#         pg.mouse.set_visible(False)
-#         # self.capture = pg.camera.Camera(0, (256, 256))
-#         # self.capture.start()
-#         # detect and use existing opengl context
-#         self.ctx = mgl.create_context()
-#         # self.ctx.front_face = 'cw'
-#         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
-#         # create an object to help track time
-#         self.clock = pg.time.Clock()
-#         self.time = 0
-#         self.delta_time = 0
-#         # light
-#         self.light = Light()
-#         # camera
-#         self.camera = Camera(self)
-#         # mesh
-#         self.mesh = Mesh(self)
-#         # scene
-#         self.scene = Scene(self)
-#         # renderer
-#         self.scene_renderer = SceneRenderer(self)
-#         self.directions = [6,0, 6, 1, 6, 2, 3, 4, 5, 5, 4, 3, 2, 1, 0]
-#         self.curr = 0
-#
-#     def check_events(self):
-#         for event in pg.event.get():
-#             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-#                 self.mesh.destroy()
-#                 self.scene_renderer.destroy()
-#                 pg.quit()
-#                 sys.exit()
-#
-#     def render(self):
-#         # clear framebuffer
-#         self.ctx.clear(color=(0.08, 0.16, 0.18))
-#         # render scene
-#         self.scene_renderer.render()
-#         # swap buffers
-#         pg.display.flip()
-#
-#     def get_time(self):
-#         self.time = pg.time.get_ticks() * 0.001
-#
-#     def run(self):
-#         # for direction in self.directions:
-#         #     if direction == 6:
-#         #         for i in range(1000):
-#         #             self.get_time()
-#         #             self.check_events()
-#         #             self.camera.update(direction, 0.09)
-#         #             self.render()
-#         #     else:
-#         #         for i in range(1000):
-#         #             self.get_time()
-#         #             self.check_events()
-#         #             self.camera.update(direction, 0)
-#         #             self.render()
-#         count = 0
-#         while True:
-#             self.get_time()
-#             self.check_events()
-#             self.camera.update()
-#             self.render()
-#             self.delta_time = self.clock.tick(60)
-#             count +=1
-#             if count % 100 == 0:
-#                 screen = pygame.display.get_surface()
-#                 size = screen.get_size()
-#                 buffer = glReadPixels(0, 0, *size, GL_RGBA, GL_UNSIGNED_BYTE)
-#                 screen_surf = pygame.image.fromstring(buffer, size, "RGBA")
-#                 pg.image.save(screen_surf, "VanillaAE/screenshot/%d.jpg" % count)
-
-
-
-
-
-
-
-#
-#
 # app = GraphicsEngine()
 # app.run()
+# print(app.saved_loss)
+
+# losss =[64.93809608890264, 58.21301989805113, 31.971097959334816, 38.335312161262266, 42.76994874609379, 43.094612088005896, 43.708479153731766, 42.76198755209488, 42.66149092197018, 42.92846893094304, 45.48965995464159, 41.58497618494551, 38.10105623281798, 21.686681215075602, 25.51779541320712, 20.726045452930606, 18.83041972807884, 16.648166826647252, 14.17794548055511, 10.737954744265995, 10.68266772271215, 9.62021318043582, 9.616294610863955, 9.462369671002916, 9.536045559459389, 9.887189498868102, 16.027850260197752, 15.816254989813764, 15.943769815605837, 15.545075439658564, 15.704418535710083, 15.666817683887711, 15.773210898658409, 15.684493935743124, 15.824522938875289, 16.009127480233026, 15.840697150763644, 16.106781870366646, 16.023803210773572, 16.237258391053942, 19.41429249730033, 19.49451627254959, 19.82531861700021, 19.921385904236722, 19.584049297965734, 19.596439672826122, 19.569023972275918, 19.48711085793875, 19.50420108871181, 19.53599689722578, 19.174001978694736, 19.842917400669403, 20.95976877952662, 21.25675989045533, 21.52834135822606, 14.765592633276626, 19.321363392484415, 19.434639932049198]
+#
+
+# losss = [64.98790673741766, 67.68369276085656, 32.04426001109843, 77.40697116426738, 97.51888792433869, 110.90938665580839, 41.23797638117006, 42.16620665647806, 40.23856019177705, 40.11252130622859, 40.06612276593007, 41.35208962760159, 39.96232616033331, 37.467994594026266, 40.90242163679289, 39.408678299825596, 40.294687442297686, 27.033137980133848, 23.96860484477314, 22.60972162909744, 19.015414485588938,
+#          19.201391638296116, 19.077375664922585, 18.810676189359654, 18.828207421646347, 18.828336705130674, 18.616591367830377, 18.68855635578438, 19.26269489813812, 18.980975628247688, 19.06807736169945, 20.12317736357024, 20.855813857561134, 20.670301656783426, 20.25431626891789, 19.7190452052751, 20.11303174373676, 19.87699411388028, 10.51601328228678, 10.436454010637593, 10.394362379989067, 10.168275349489766, 10.141027815167337, 12.168922253776845, 13.154168952830402, 13.314771445848075, 10.096622154229962, 18.36585931784111, 10.052955478155205, 9.679449553854191, 9.318903605756303]
+#
+
+#
+# def update(frame):
+#     x.append(len(x))
+#     y.append(frame)
+#     line.set_data(x, y)
+#     ax.relim()
+#     ax.autoscale_view()
+#     plt.pause(0.5)
+#
+#
+# x = []
+# y = []
+# fig, ax = pp.subplots()
+# ax.set_ylim(0, 200)
+# ax.set_xlim(0, 60)
+# line, = ax.plot(x, y)
+
+# ax.set_xlabel("Detection")
+# ax.set_ylabel("Loss")
+# plt.title("Loss of Change Detection")
+#
+#
+#
+#
+# def main():
+#     for l in losss:
+#         # l = np.exp(l / 20)
+#         update(l)
+#
+#     plt.show()
+#
+#
+# if __name__ == '__main__':
+#     main()
 
 
 
