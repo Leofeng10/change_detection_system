@@ -34,20 +34,24 @@ if __name__ == '__main__':
     env.q_local.load_state_dict(check_point_Qlocal['model'])
     env.optim.load_state_dict(check_point_Qlocal['optimizer'])
     epoch=check_point_Qlocal['epoch']
-    env.level= 8
-    state = env.reset_test()
 
     # state = env.reset_test1(args.ox, args.oy, args.oz, args.x, args.y, args.z)
     total_reward = 0
-    env.render(1)
     n_done=0
     count=0
- 
+
     n_test=1
     n_creash=0
 
+
     cmd = ""
+    # for l in range(12, 13):
+    env.level = 5
+    success_count = 0
+    fail = 0
     for i in range(n_test):
+        state = env.reset()
+        env.render(1)
         while(1):
             if env.uavs[0].done:
                 break
@@ -56,28 +60,29 @@ if __name__ == '__main__':
             next_state, reward, uav_done, info, dx, dy, dz, x, y, z = env.step(action.item(),0)
 
 
-            print(dx, dy, dz, x, y, z, uav_done)
-            print( env.convert_to_cmd_simulator(dy, dx, dz))
+            # print(dx, dy, dz, x, y, z, uav_done, info)
             cmd += env.convert_to_cmd_simulator(dy, dx, dz)
             cmd += "(" + str(x) + "," +  str(y) + "," + str(z) + ")\n"
 
             total_reward += reward
 
             env.render()
-            plt.pause(0.01)  
-            if uav_done:
-                break
+            plt.pause(0.01)
+
             if info==1:
                 success_count=success_count+1
+                print("success!!!!")
+                break
+            if uav_done:
+                print(dx, dy, dz, x, y, z, uav_done, info)
+                print("Fail!!!!")
+                fail += 1
+                break
 
             state[0] = next_state
+        # print("success:", success_count, "fAIL", fail)
 
-        with open("VanillaAE/command.txt", 'w') as file:
-            file.write(cmd)
+        # with open("VanillaAE/command.txt", 'w') as file:
+        #     file.write(cmd)
         env.ax.scatter(env.target[0].x, env.target[0].y, env.target[0].z,c='red')
         plt.pause(100)
-
-
-
-
-
